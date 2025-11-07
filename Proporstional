@@ -1,0 +1,84 @@
+# ----------------------------------------
+# Truth Table Enumeration Algorithm
+# for Deciding Propositional Entailment
+# ----------------------------------------
+
+from itertools import product
+
+# ----------------------------------------
+# Function to evaluate propositional logic expression
+# ----------------------------------------
+def pl_true(expr, model):
+    expr = expr.replace(" ", "")
+
+    # Replace logical operators with Python equivalents
+    expr = expr.replace("<=>", "==")  # biconditional
+    expr = expr.replace("=>", "→")    # temporary symbol for implication
+    expr = expr.replace("and", " and ")
+    expr = expr.replace("or", " or ")
+    expr = expr.replace("not", " not ")
+
+    # Replace propositional symbols with True/False
+    for symbol, val in model.items():
+        expr = expr.replace(symbol, str(val))
+
+    # Handle implication (A => B is equivalent to (not A or B))
+    while "→" in expr:
+        # Find and replace each occurrence
+        parts = expr.split("→", 1)
+        left = parts[0].rstrip("() ")
+        right = parts[1].lstrip("() ")
+        expr = f"(not ({left}) or ({right}))"
+
+    try:
+        return eval(expr)
+    except Exception:
+        return False
+
+
+# ----------------------------------------
+# Main entailment check using truth table
+# ----------------------------------------
+def tt_entails(KB, alpha, symbols):
+    return tt_check_all(KB, alpha, symbols, {})
+
+
+def tt_check_all(KB, alpha, symbols, model):
+    if not symbols:
+        if pl_true(KB, model):
+            return pl_true(alpha, model)
+        else:
+            return True
+    else:
+        P = symbols[0]
+        rest = symbols[1:]
+        model_true = model.copy()
+        model_true[P] = True
+        model_false = model.copy()
+        model_false[P] = False
+
+        return (tt_check_all(KB, alpha, rest, model_true) and
+                tt_check_all(KB, alpha, rest, model_false))
+
+
+# ----------------------------------------
+# Extract propositional symbols
+# ----------------------------------------
+def extract_symbols(expr):
+    ops = {'and', 'or', 'not', '=>', '<=>', '(', ')'}
+    tokens = expr.replace('(', ' ').replace(')', ' ').split()
+    return sorted(set(token for token in tokens if token not in ops))
+
+
+# ----------------------------------------
+# MAIN PROGRAM
+# ----------------------------------------
+if __name__ == "__main__":
+    print("Truth Table Entailment Checker")
+    KB = input("Enter Knowledge Base (e.g., (P and Q) => R): ")
+    alpha = input("Enter Query (e.g., R): ")
+
+    symbols = extract_symbols(KB + " " + alpha)
+    result = tt_entails(KB, alpha, symbols)
+
+    print("\nDoes KB entail α? :", result)
